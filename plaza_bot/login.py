@@ -25,6 +25,14 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
   options = webdriver.ChromeOptions()
   if config["selenium"]["headless"]:
     options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--remote-debugging-port=9222")
+    options.add_argument("--disable-setuid-sandbox")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--disable-extensions")
+
   driver = webdriver.Chrome(options=options)
 
   try:
@@ -47,7 +55,7 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         EC.element_to_be_clickable(
           (
             By.XPATH,
-            "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Login')]",
+            "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Login')] | //zds-navigation-link[contains(@class, 'hydrated')]//zds-icon[@name='person_outline']",
           )
         )
       )
