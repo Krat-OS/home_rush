@@ -10,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from plaza_bot.models import HousingOffer
-from plaza_bot.utils import serialize_str_to_housing_offer, generate_location_url
+from plaza_bot.utils import generate_location_url, serialize_str_to_housing_offer
 
 
 def reply(driver: Chrome, item, logger: Logger) -> bool:
@@ -77,10 +77,15 @@ def monitor_and_reply(config: Dict[str, Any], driver: Chrome, logger: Logger) ->
       )
       raw_items: Any = list_container.find_elements(By.CSS_SELECTOR, "section.list-item")
 
-      new_housing_offers: List[tuple[HousingOffer, Any]] = list(filter(
-        lambda pair: pair[1].address.street in desired_complexes and not pair[1].responded,
-        [(raw_item, serialize_str_to_housing_offer(raw_item.text, logger)) for raw_item in raw_items]
-      ))
+      new_housing_offers: List[tuple[HousingOffer, Any]] = list(
+        filter(
+          lambda pair: pair[1].address.street in desired_complexes and not pair[1].responded,
+          [
+            (raw_item, serialize_str_to_housing_offer(raw_item.text, logger))
+            for raw_item in raw_items
+          ],
+        )
+      )
 
       if not new_housing_offers:
         logger.info("No new offers found")

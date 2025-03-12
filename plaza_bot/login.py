@@ -43,7 +43,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
 
     # Step 2: Click the login button
     try:
-      # Use a more specific selector or XPath to target the login button
       login_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
           (

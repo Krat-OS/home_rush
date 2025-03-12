@@ -1,18 +1,20 @@
+
 from logging import Logger
 from typing import List
-import urllib.parse
 
 from plaza_bot.models import HousingOffer
 
+
 def generate_location_url(location: tuple[str, str], logger: Logger) -> str:
   """Generate a formatted URL based on a given location tuple (city, province).
-  
+
   Args:
     location (tuple[str, str]): A tuple containing the city and province (e.g., ("Delft", "Zuid-Holland")).
     logger (Logger): Logger instance for recording log messages.
-  
+
   Returns:
     str: The formatted URL as a string.
+
   """
   city, province = location
   formatted_location = f"{city}-Nederland%2B-%2B{province}"
@@ -36,8 +38,6 @@ def serialize_str_to_housing_offer(input: str, logger: Logger) -> HousingOffer:
   housing_offer = HousingOffer()
   text: str = input.strip().replace("\n", " | ").replace("| |", "|")
   parts: List[str] = text.split(" | ")
-  
-  print(parts)
 
   for index, part in enumerate(parts):
     stripped = part.strip()
@@ -50,7 +50,9 @@ def serialize_str_to_housing_offer(input: str, logger: Logger) -> HousingOffer:
         logger.error(f"Failed to convert monthly price to float: {stripped}")
     elif "Total rental price:" in stripped:
       try:
-        price_str = stripped.replace("Total rental price:", "").replace("€", "").replace(",", "").strip()
+        price_str = (
+          stripped.replace("Total rental price:", "").replace("€", "").replace(",", "").strip()
+        )
         housing_offer.total_price = float(price_str)
       except ValueError:
         logger.error(f"Failed to convert total price to float: {stripped}")
@@ -79,7 +81,7 @@ def serialize_str_to_housing_offer(input: str, logger: Logger) -> HousingOffer:
         elif "floor" in segment.lower():
           try:
             floor_text = segment.lower().replace("floor", "").strip()
-            floor_number = ''.join(filter(str.isdigit, floor_text))
+            floor_number = "".join(filter(str.isdigit, floor_text))
             if floor_number:
               housing_offer.address.floor = int(floor_number)
           except ValueError:
