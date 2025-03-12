@@ -19,8 +19,7 @@ def load_config() -> Dict[str, Any]:
 
 
 def main() -> None:
-  """Main entry point of the bot.
-  """
+  """Main entry point of the bot."""
   config: Dict[str, Any] = load_config()
   driver = login(config, logger)
 

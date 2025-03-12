@@ -29,7 +29,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
 
   try:
     driver.get(config["login"]["url"])
-    logger.info("Opened the homepage.")
 
     # Step 1: Accept cookies if the banner is present
     try:
@@ -39,7 +38,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         )
       )
       accept_cookies_button.click()
-      logger.info("Accepted cookies.")
     except TimeoutException:
       logger.warning("Cookies banner not found or already accepted.")
 
@@ -55,7 +53,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         )
       )
       login_button.click()
-      logger.info("Clicked the login button.")
     except TimeoutException:
       logger.error("Login button not found or not interactable.")
       raise
@@ -66,7 +63,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         EC.presence_of_element_located((By.ID, "username"))
       )
       username_field.send_keys(config["login"]["username"])
-      logger.info("Filled in the username.")
     except TimeoutException:
       logger.error("Username field not found.")
       raise
@@ -77,7 +73,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         EC.presence_of_element_located((By.ID, "password"))
       )
       password_field.send_keys(config["login"]["password"])
-      logger.info("Filled in the password.")
     except TimeoutException:
       logger.error("Password field not found.")
       raise
@@ -88,7 +83,6 @@ def login(config: Dict[str, Any], logger: logging.Logger) -> webdriver.Chrome:
         EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='submit']"))
       )
       submit_button.click()
-      logger.info("Clicked the submit button.")
     except TimeoutException:
       logger.error("Submit button not found.")
       raise
