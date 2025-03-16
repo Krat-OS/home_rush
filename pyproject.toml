@@ -14,7 +14,7 @@ authors = [
 dependencies = [
   "selenium>=4.0.0",
   "pyyaml>=6.0.0",
-  "colorama>=0.4.6",  # For colored logging
+  "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]
