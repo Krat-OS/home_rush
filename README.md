@@ -57,13 +57,6 @@ selenium:
    python -m plaza_bot
    ```
 
-### Using GitHub Release
-
-1. Download the latest release from the GitHub repository
-2. Extract the files
-3. Create and edit your `config.yaml` file
-4. Run the executable
-
 ## How to Contribute
 
 Contributing to this project requires a slightly different setup to access development tools:
