@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "plaza_bot"
-version = "0.1.0"
-description = "A bot to monitor and interact with Plaza."
+name = "housing_bot"
+version = "0.2.0"
+description = "A bot to monitor and interact with housing websites."
 readme = "README.md"
 requires-python = ">=3.11.9"
 authors = [
@@ -27,10 +27,10 @@ dev = [
 ]
 
 [project.scripts]
-plaza_bot = "plaza_bot.main:main"
+housing_bot = "housing_bot.main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["plaza_bot"]
+packages = ["housing_bot"]
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -45,7 +45,7 @@ test = "pytest {args:tests}"
 lint = "ruff check . --fix"
 format = "ruff format ."
 check = ["ruff format .", "ruff check . --fix", "pytest tests/"]
-run = "python -m plaza_bot.main"
+run = "python -m housing_bot.main"
 
 [tool.ruff]
 line-length = 100
@@ -147,7 +147,7 @@ lines-between-types = 1
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --cov=plaza_bot --cov-report=term-missing --cov-report=xml"
+addopts = "-ra -q --cov=housing_bot --cov-report=term-missing --cov-report=xml"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 asyncio_mode = "auto"
@@ -155,7 +155,7 @@ asyncio_default_fixture_loop_scope = "function"
 norecursedirs = ["__init__.py"]
 
 [tool.coverage.run]
-source = ["plaza_bot"]
+source = ["housing_bot"]
 branch = true
 omit = [
   "tests/*",

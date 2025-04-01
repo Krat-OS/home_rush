@@ -1,18 +1,19 @@
 # Python cache files
-*/__pycache__
-*/.pytest_cache
+**/__pycache__
+**/__pycache__/**
+**/.pytest_cache
 .pytest_cache
 .ruff_cache
 
 # IDE settings
-*/.vscode
-*/.idea
+**/.vscode
+**/.idea
 
 # Virtual environment
 .venv
 
 # Package files
-plaza_bot/plaza_bot.egg-info
+housing_bot/housing_bot.egg-info
 
 # Test coverage
 .coverage
