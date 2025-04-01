@@ -152,6 +152,8 @@ class PlazaBot(AbstractHousingBot):
         self.logger.exception("Username field not found.")
         raise
 
+      time.sleep(1)
+
       # Step 4: Fill in the password
       try:
         password_field = self.driver.wait_for_element_to_be_visible(By.ID, "password")
