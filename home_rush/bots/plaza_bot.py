@@ -7,15 +7,15 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
-from housing_bot.bots.abstract_bot import AbstractHousingBot
-from housing_bot.data.models import HousingOffer
+from home_rush.bots.abstract_bot import AbstractHousingBot
+from home_rush.data.models import HousingOffer
 
 
 class PlazaBot(AbstractHousingBot):
-  def __init__(self, config: Dict[str, Any], logger: Logger):
+  def __init__(self, config: Dict[str, Any], logger: Logger) -> None:
     super().__init__("plaza", config, logger)
 
-  def __del__(self):
+  def __del__(self) -> None:
     super().__del__()
 
   def _generate_location_url(self, location: tuple[str, str]) -> str:
@@ -36,6 +36,7 @@ class PlazaBot(AbstractHousingBot):
 
   def _serialize_str_to_housing_offer(self, input: str) -> HousingOffer:
     """Convert a text string into a structured HousingOffer object.
+
     This function parses a string representation of a housing offer and extracts
     relevant information such as price, address, property type, size, etc.
 
@@ -58,7 +59,7 @@ class PlazaBot(AbstractHousingBot):
           price_str = stripped.replace("€", "").replace("p.m", "").replace(",", "").strip()
           housing_offer.monthly_price = float(price_str)
         except ValueError:
-          self.logger.error(f"Failed to convert monthly price to float: {stripped}")
+          self.logger.exception("Failed to convert monthly price to float", exc_info=stripped)
       elif "Total rental price:" in stripped:
         try:
           price_str = (
@@ -66,7 +67,7 @@ class PlazaBot(AbstractHousingBot):
           )
           housing_offer.total_price = float(price_str)
         except ValueError:
-          self.logger.error(f"Failed to convert total price to float: {stripped}")
+          self.logger.exception("Failed to convert total price to float", exc_info=stripped)
 
       elif index == 3:
         address_parts = stripped.split()
@@ -96,13 +97,13 @@ class PlazaBot(AbstractHousingBot):
               if floor_number:
                 housing_offer.address.floor = int(floor_number)
             except ValueError:
-              self.logger.error(f"Failed to convert floor to int: {segment}")
+              self.logger.exception("Failed to convert floor to int", exc_info=segment)
 
       elif "m²" in stripped:
         try:
           housing_offer.property_profile.size = float(stripped.replace("m²", "").strip())
         except ValueError:
-          self.logger.error(f"Failed to convert size to float: {stripped}")
+          self.logger.exception("Failed to convert size to float", exc_info=stripped)
 
       elif "responded" in stripped.lower():
         housing_offer.responded = True
@@ -140,7 +141,7 @@ class PlazaBot(AbstractHousingBot):
         )
         login_button.click()
       except TimeoutException:
-        self.logger.error("Login button not found or not interactable.")
+        self.logger.exception("Login button not found or not interactable.")
         raise
 
       # Step 3: Fill in the username
@@ -148,7 +149,7 @@ class PlazaBot(AbstractHousingBot):
         username_field = self.driver.wait_for_element_to_be_visible(By.ID, "username")
         username_field.send_keys(self.config["login"]["username"])
       except TimeoutException:
-        self.logger.error("Username field not found.")
+        self.logger.exception("Username field not found.")
         raise
 
       # Step 4: Fill in the password
@@ -156,7 +157,7 @@ class PlazaBot(AbstractHousingBot):
         password_field = self.driver.wait_for_element_to_be_visible(By.ID, "password")
         password_field.send_keys(self.config["login"]["password"])
       except TimeoutException:
-        self.logger.error("Password field not found.")
+        self.logger.exception("Password field not found.")
         raise
 
       # Step 5: Submit the form
@@ -166,7 +167,7 @@ class PlazaBot(AbstractHousingBot):
         )
         submit_button.click()
       except TimeoutException:
-        self.logger.error("Submit button not found.")
+        self.logger.exception("Submit button not found.")
         raise
 
       # Step 6: Wait for login to complete
@@ -177,14 +178,12 @@ class PlazaBot(AbstractHousingBot):
         self.logger.warning("Login might have failed. Check the page after submission.")
         raise
 
-      return self.driver
-
     except Exception as e:
-      self.logger.error(f"Login failed: {e}")
+      self.logger.exception("Login failed", exc_info=e)
       self.driver.quit()
       raise
 
-  def _reply(self, item: WebElement) -> bool:
+  def _reply(self, item: WebElement) -> None:
     """Clicks on the item, clicks the "Reply" button, and returns to the original page.
 
     Args:
@@ -209,15 +208,13 @@ class PlazaBot(AbstractHousingBot):
       time.sleep(2)
 
       self.driver.back()
-      return True
 
     except TimeoutException:
-      self.logger.error("Failed to find or click the 'Reply' button")
+      self.logger.exception("Failed to find or click the 'Reply' button")
     except Exception as e:
-      self.logger.error(f"An error occurred while replying: {e}")
+      self.logger.exception(f"An error occurred while replying: {e}")
 
     self.driver.back()
-    return False
 
   def monitor_and_reply(self) -> None:
     """Monitors the target URL for new items and replies to them."""
@@ -248,13 +245,16 @@ class PlazaBot(AbstractHousingBot):
         if not new_housing_offers:
           self.logger.info("No new offers found")
         else:
-          self.logger.info(f"Found {len(new_housing_offers)} new offers")
-          # for raw_item, offer in new_housing_offers:
-          #   if self._reply(raw_item):
-          #     offer.responded = True
-          #     self.logger.info(f"Replied to offer: {offer}")
-          #   else:
-          #     self.logger.error(f"Failed to reply to offer: {offer}")
+          self.logger.info("Found %d new offers", len(new_housing_offers))
+          for raw_item, offer in new_housing_offers:
+            try:
+              self._reply(raw_item)
+              offer.responded = True
+              self.logger.info("Replied to offer", exc_info=offer)
+            except TimeoutException:
+              self.logger.exception("Failed to reply to offer", exc_info=offer)
+            except Exception as e:
+              self.logger.exception("An error occurred while replying", exc_info=e)
 
       except TimeoutException:
         self.logger.warning("List container or items not found on the page")

@@ -5,8 +5,8 @@ from typing import Any, Dict
 
 from selenium.webdriver.remote.webelement import WebElement
 
-from housing_bot.data.models import HousingOffer
-from housing_bot.utils.web_driver_adapter import WebDriverAdapter
+from home_rush.data.models import HousingOffer
+from home_rush.utils.web_driver_adapter import WebDriverAdapter
 
 
 class AbstractHousingBot:

@@ -4,10 +4,10 @@ from typing import Any, Dict, Type
 
 import yaml
 
-from housing_bot.bots.abstract_bot import AbstractHousingBot
-from housing_bot.bots.holland2stay_bot import Holland2StayBot
-from housing_bot.bots.plaza_bot import PlazaBot
-from housing_bot.utils.logging import setup_logging
+from home_rush.bots.abstract_bot import AbstractHousingBot
+from home_rush.bots.holland2stay_bot import Holland2StayBot
+from home_rush.bots.plaza_bot import PlazaBot
+from home_rush.utils.logging import setup_logging
 
 
 def _run_bot(bot_class: Type[AbstractHousingBot], config: Dict[str, Any], logger: Logger) -> None:
@@ -15,7 +15,7 @@ def _run_bot(bot_class: Type[AbstractHousingBot], config: Dict[str, Any], logger
   try:
     bot.monitor_and_reply()
   except Exception as e:
-    logger.error(f"An error occurred: {e}")
+    logger.exception("An error occurred", exc_info=e)
   finally:
     del bot
 

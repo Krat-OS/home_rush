@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from selenium.webdriver.remote.webelement import WebElement
 
-from housing_bot.bots.abstract_bot import AbstractHousingBot
+from home_rush.bots.abstract_bot import AbstractHousingBot
 
 
 class Holland2StayBot(AbstractHousingBot):
