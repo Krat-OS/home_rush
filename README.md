@@ -1,6 +1,8 @@
-# PLAZA BOT
+# Home Rush
 
-This is a bot which automatically applies to a list of Plaza Complexes every time a new one is available. It uses `python 3.11.9` with `hatchling` for building and `selenium` for `webdriver` interaction.
+This is a bot which applies to differnt housing agency complexes. It uses `python 3.11.9` with `hatchling` for building and `selenium` for `webdriver` interaction. The bot can create multiple instances that run in parallel, allowing for efficient monitoring and application across different platforms.
+
+> Right now, it only works with Plaza Resident Services, but I am extending it to work with Holland2Stay and other agencies.
 
 ## Prerequisites
 
@@ -11,25 +13,28 @@ This is a bot which automatically applies to a list of Plaza Complexes every tim
 ## Config Set-up
 
 1. Create your own `config.yaml`
-2. Fill in your Plaza account details (username, password)
-3. Specify the city and province where you want the bot to search
-4. Add a list of desired campuses (as street names)
+2. Specify the agency you want (only `plaza` works for now).
+3. Fill in your account details (username, password)
+4. Specify the city and province where you want the bot to search
+5. Add a list of desired campuses (as street names)
 
-Example config structure:
+### Example config structure:
 
 ```yaml
-login:
-  url: "https://plaza.newnewnew.space/en/"
-  username: "username"
-  password: "password"
+plaza:
+  login:
+    url: "https://plaza.newnewnew.space/en/"
+    username: "your_username"
+    password: "your_password"
 
-target:
-  city: ["City", "Province"]
-  complexes: ["Street Name"]
+  target:
+    city: ["City", "Province"]
+    complexes: ["Street Name"]
+
+  poll_interval: 60
 
 selenium:
-  headless: True
-  poll_interval: 60
+  headless: True / False
 ```
 
 ## Installation & Usage
@@ -40,22 +45,22 @@ selenium:
 
 2. Create and activate a virtual environment:
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+  ```
 
 3. Install the package:
 
-   ```bash
-   pip install .
-   ```
+  ```bash
+  pip install .
+  ```
 
 4. Run the bot:
 
-   ```bash
-   python -m plaza_bot
-   ```
+  ```bash
+  python -m home_rush
+  ```
 
 ## How to Contribute
 
@@ -67,24 +72,24 @@ Contributing to this project requires a slightly different setup to access devel
 
 3. Install development dependencies:
 
-   ```bash
-   pip install -e ".[dev]"
-   ```
+  ```bash
+  pip install -e ".[dev]"
+  ```
 
 4. Available development commands:
 
-   ```bash
-   hatch run run      # Run the bot in development mode
-   hatch run lint     # Check code style with linters
-   hatch run format   # Auto-format code to match style guidelines
-   hatch run test     # Run the test suite
-   ```
+  ```bash
+  hatch run run      # Run the bot in development mode
+  hatch run lint     # Check code style with linters
+  hatch run format   # Auto-format code to match style guidelines
+  hatch run test     # Run the test suite
+  ```
 
 5. Create a new branch for your feature or bug fix:
 
-   ```bash
-   git checkout -b feat/your-feature-name
-   ```
+  ```bash
+  git checkout -b feat/your-feature-name
+  ```
 
 6. Make your changes and commit them using [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) with descriptive messages
 7. Push your branch and create a pull request
@@ -92,4 +97,4 @@ Contributing to this project requires a slightly different setup to access devel
 ## Troubleshooting
 
 - **WebDriver Issues**: Make sure you have Chrome installed and that the WebDriver version matches your Chrome version
-- **Authentication Problems**: Verify your Plaza account credentials in the config file
+- **Authentication Problems**: Verify your account credentials in the config file

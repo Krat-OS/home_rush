@@ -13,7 +13,7 @@
 .venv
 
 # Package files
-housing_bot/housing_bot.egg-info
+home_rush/home_rush.egg-info
 
 # Test coverage
 .coverage
