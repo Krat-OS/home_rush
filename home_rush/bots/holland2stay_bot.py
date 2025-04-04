@@ -22,5 +22,5 @@ class Holland2StayBot(AbstractHousingBot):
   def _monitor_and_reply(self) -> None:
     pass
 
-  def run_bot(self) -> None:
+  def run(self) -> None:
     pass

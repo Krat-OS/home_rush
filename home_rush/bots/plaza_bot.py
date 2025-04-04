@@ -406,10 +406,10 @@ class PlazaBot(AbstractHousingBot):
       self.driver.refresh()
       self.logger.info("Page refreshed")
 
-  def run_bot(self) -> None:
+  def run(self) -> None:
     """Run the bot."""
     try:
       self._login()
       self._monitor_and_reply()
     except Exception as e:
-      self.logger.exception("An error occurred", exc_info=e)
+      self.logger.exception("An error occurred while running the Plaza Bot", exc_info=e)

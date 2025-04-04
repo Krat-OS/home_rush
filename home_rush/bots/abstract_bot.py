@@ -70,6 +70,6 @@ class AbstractHousingBot:
     """
     raise NotImplementedError
 
-  def run_bot(self) -> None:
+  def run(self) -> None:
     """Run the bot."""
     raise NotImplementedError
