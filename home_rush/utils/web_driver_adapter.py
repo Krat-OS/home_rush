@@ -1,11 +1,12 @@
 from typing import Any, Dict, List
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
+
 
 class WebDriverAdapter:
   """A wrapper class for Selenium WebDriver to provide additional utility methods

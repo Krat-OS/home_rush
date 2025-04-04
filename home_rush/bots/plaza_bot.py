@@ -1,7 +1,7 @@
 import time
 
 from logging import Logger
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -110,6 +110,117 @@ class PlazaBot(AbstractHousingBot):
 
     return housing_offer
 
+  def _parse_filters(self, config: Dict[str, Any]) -> Dict[str, Callable[[HousingOffer], bool]]:
+    """Parse filter configurations and return a dictionary of filter functions.
+
+    Args:
+        config: The configuration dictionary containing filter specifications
+
+    Returns:
+        Dictionary of named filter functions that each take an offer and return a boolean
+
+    """
+    filters: Dict[str, Callable[[HousingOffer], bool]] = {}
+
+    filter_config: Dict[str, Any] = config.get("target", {}).get("filters", {})
+
+    if "complexes" in filter_config:
+      complexes: List[str] = filter_config["complexes"]
+      if complexes:
+
+        def complexes_filter(offer: HousingOffer) -> bool:
+          return offer.address.street in complexes
+
+        filters["complexes"] = complexes_filter
+
+    field_mapping = {
+      "rent": "monthly_price",
+      "total_rent": "total_price",
+      "floor": "address.floor",
+      "size": "property_profile.size",
+    }
+
+    for config_field, obj_field in field_mapping.items():
+      if config_field in filter_config:
+        field_config: Dict[str, Any] = filter_config[config_field]
+
+        if "eq" in field_config:
+          value: Any = field_config["eq"]
+
+          def eq_filter(offer: HousingOffer, field_path: str = obj_field, val: Any = value) -> bool:
+            if "." in field_path:
+              parts = field_path.split(".")
+              attr = getattr(offer, parts[0])
+              return getattr(attr, parts[1]) == val
+            return getattr(offer, field_path) == val
+
+          filters[f"{config_field}_eq"] = eq_filter
+
+        if "min" in field_config:
+          min_value: Any = field_config["min"]
+
+          def min_filter(
+            offer: HousingOffer, field_path: str = obj_field, val: Any = min_value
+          ) -> bool:
+            if "." in field_path:
+              parts = field_path.split(".")
+              attr = getattr(offer, parts[0])
+              return getattr(attr, parts[1]) >= val
+            return getattr(offer, field_path) >= val
+
+          filters[f"{config_field}_min"] = min_filter
+
+        if "max" in field_config:
+          max_value: Any = field_config["max"]
+
+          def max_filter(
+            offer: HousingOffer, field_path: str = obj_field, val: Any = max_value
+          ) -> bool:
+            if "." in field_path:
+              parts = field_path.split(".")
+              attr = getattr(offer, parts[0])
+              return getattr(attr, parts[1]) <= val
+            return getattr(offer, field_path) <= val
+
+          filters[f"{config_field}_max"] = max_filter
+
+    return filters
+
+  @staticmethod
+  def _apply_filters(
+    items: List[Tuple[WebElement, HousingOffer]], filters: Dict[str, Callable[[HousingOffer], bool]]
+  ) -> List[Tuple[WebElement, HousingOffer]]:
+    """Apply the provided filters to the list of items.
+
+    Args:
+        items: List of tuples containing raw elements and their corresponding offer objects
+        filters: Dictionary of filter functions to apply
+
+    Returns:
+        Filtered list of item pairs that match all criteria
+
+    """
+    result: List[Tuple[WebElement, HousingOffer]] = []
+
+    for raw_item, offer in items:
+      if offer.responded:
+        continue
+
+      matches: bool = True
+      for filter_func in filters.values():
+        try:
+          if not filter_func(offer):
+            matches = False
+            break
+        except (AttributeError, TypeError):
+          matches = False
+          break
+
+      if matches:
+        result.append((raw_item, offer))
+
+    return result
+
   def _login(self) -> None:
     """Log in to the website and return the authenticated driver.
 
@@ -190,6 +301,7 @@ class PlazaBot(AbstractHousingBot):
 
     Args:
       item (WebElement): The web element representing the item to reply to.
+      offer (HousingOffer): The offer object to reply to.
 
     Returns:
       bool: True if the reply was successful, False otherwise.
@@ -220,10 +332,8 @@ class PlazaBot(AbstractHousingBot):
   def _monitor_and_reply(self) -> None:
     """Monitor the target URL for new items and replies to them."""
     location_url: str = self._generate_location_url(self.config["target"]["city"])
-    if "conmplexes" in self.config["target"]:
-      desired_complexes: List[str] = self.config["target"]["complexes"]
-    else:
-      desired_complexes: List[str] = []
+    filters: Dict[str, Callable[[HousingOffer], bool]] = self._parse_filters(self.config)
+    self.logger.info("Filters: %s", ", ".join(filters.keys()))
     poll_interval: int = self.config["poll_interval"]
 
     self.driver.get(location_url)
@@ -243,16 +353,13 @@ class PlazaBot(AbstractHousingBot):
             By.CSS_SELECTOR, "section.list-item"
           )
 
-          new_housing_offers = list(
-              filter(
-                  lambda pair: not pair[1].responded
-                               and (not desired_complexes
-                                    or pair[1].address.street in desired_complexes),
-                  [
-                      (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
-                      for raw_item in raw_items
-                  ],
-              )
+          item_offer_pairs: List[Tuple[WebElement, Any]] = [
+            (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
+            for raw_item in raw_items
+          ]
+
+          new_housing_offers: List[Tuple[WebElement, Any]] = self._apply_filters(
+            item_offer_pairs, filters
           )
 
           if not new_housing_offers:
