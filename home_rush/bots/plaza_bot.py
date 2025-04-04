@@ -3,7 +3,11 @@ import time
 from logging import Logger
 from typing import Any, Callable, Dict, List, Tuple
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import (
+  NoSuchElementException,
+  StaleElementReferenceException,
+  TimeoutException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
@@ -105,7 +109,7 @@ class PlazaBot(AbstractHousingBot):
         except ValueError:
           self.logger.exception("Failed to convert size to float", exc_info=stripped)
 
-      elif "responded" in stripped.lower():
+      elif "gereageerd" in stripped.lower():
         housing_offer.responded = True
 
     return housing_offer
@@ -248,7 +252,7 @@ class PlazaBot(AbstractHousingBot):
       try:
         login_button = self.driver.wait_for_element_to_be_clickable(
           By.XPATH,
-          "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Inloggen')] | //zds-navigation-link[contains(@class, 'hydrated')]//zds-icon[@name='person_out  line']",
+          "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Login')] | //zds-navigation-link[contains(@class, 'hydrated')]//zds-icon[@name='person_outline']",
         )
         login_button.click()
       except TimeoutException:
@@ -297,37 +301,33 @@ class PlazaBot(AbstractHousingBot):
       raise
 
   def _reply(self, item: WebElement, offer: HousingOffer) -> None:
-    """Clicks on the item, clicks the "Reply" button, and returns to the original page.
+    """Clicks on the item, clicks the 'Reply' button, and returns to the original page.
 
     Args:
       item (WebElement): The web element representing the item to reply to.
-      offer (HousingOffer): The offer object to reply to.
-
-    Returns:
-      bool: True if the reply was successful, False otherwise.
-
+      offer (HousingOffer): The housing offer object being replied to.
     """
     try:
+      parent: str = self.driver.get_current_url()
       self.driver.scroll_into_view(item)
       time.sleep(1)
       item.click()
-
       reply_button = self.driver.wait_for_element_to_be_clickable(
         By.CSS_SELECTOR, "input.reageer-button[value='Reageer']"
       )
       self.driver.scroll_into_view(reply_button)
       time.sleep(1)
       reply_button.click()
-
-      self.logger.info("Replied to offer: %s", offer)
-
       time.sleep(2)
-
+      self.driver.back()
     except TimeoutException:
       self.logger.exception("Failed to find or click the 'Reply' button")
-      raise
+    except StaleElementReferenceException:
+      self.logger.warning("Encountered stale element, returning to listing page")
+    except Exception as e:
+      self.logger.exception("An error occurred while replying: %s", e)
     finally:
-      self.driver.back()
+      self.driver.get(parent)
 
   def _monitor_and_reply(self) -> None:
     """Monitor the target URL for new items and replies to them."""
@@ -353,10 +353,15 @@ class PlazaBot(AbstractHousingBot):
             By.CSS_SELECTOR, "section.list-item"
           )
 
-          item_offer_pairs: List[Tuple[WebElement, Any]] = [
-            (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
-            for raw_item in raw_items
-          ]
+          item_offer_pairs: List[Tuple[WebElement, Any]] = list(
+            filter(
+              lambda pair: not pair[1].responded,
+              [
+                (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
+                for raw_item in raw_items
+              ],
+            )
+          )
 
           new_housing_offers: List[Tuple[WebElement, Any]] = self._apply_filters(
             item_offer_pairs, filters
@@ -378,7 +383,7 @@ class PlazaBot(AbstractHousingBot):
           self.logger.warning("List container or items not found on the page")
 
       time.sleep(poll_interval)
-      self.driver.get(location_url)
+      self.driver.refresh()
       self.logger.info("Page refreshed")
 
   def run_bot(self) -> None:

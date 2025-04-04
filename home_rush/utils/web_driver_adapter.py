@@ -48,6 +48,15 @@ class WebDriverAdapter:
     """
     self.driver.get(url)
 
+  def get_current_url(self) -> str:
+    """Get the current URL of the browser.
+
+    Returns:
+      str: The current URL of the browser.
+
+    """
+    return self.driver.current_url
+
   def find_element(self, by: By, value: str) -> WebElement:
     """Find a single web element on the page.
 
