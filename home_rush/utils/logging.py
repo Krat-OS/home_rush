@@ -22,9 +22,9 @@ class ColoredFormatter(logging.Formatter):
     return f"{self.formatTime(record, '%H:%M:%S')} | {log_level_name} | {log_message}"
 
 
-def setup_logging():
+def setup_logging() -> logging.Logger:
   """Set up logging with a custom formatter."""
-  logger = logging.getLogger()
+  logger = logging.getLogger(__name__)
   logger.setLevel(logging.INFO)
 
   console_handler = logging.StreamHandler()
@@ -34,3 +34,5 @@ def setup_logging():
   console_handler.setFormatter(formatter)
 
   logger.addHandler(console_handler)
+
+  return logger

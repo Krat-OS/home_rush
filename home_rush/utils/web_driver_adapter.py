@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-
+from selenium.common.exceptions import TimeoutException
 
 class WebDriverAdapter:
   """A wrapper class for Selenium WebDriver to provide additional utility methods
@@ -94,6 +94,23 @@ class WebDriverAdapter:
 
     """
     return WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((by, value)))
+
+  def is_element_on_screen(self, by: By, value: str) -> bool:
+    """Check if a web element is on the screen.
+
+    Args:
+      by (By): The method to locate the element (e.g., By.ID, By.XPATH).
+      value (str): The value to search for using the specified method.
+
+    Returns:
+      bool: True if the element is on the screen, False otherwise.
+
+    """
+    try:
+      WebDriverWait(self.driver, 2).until(EC.visibility_of_element_located((by, value)))
+      return True
+    except TimeoutException:
+      return False
 
   def wait_for_element_to_be_clickable(self, by: By, value: str) -> WebElement:
     """Wait until a web element is clickable.

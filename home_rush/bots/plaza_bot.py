@@ -30,8 +30,8 @@ class PlazaBot(AbstractHousingBot):
     """
     city, province = location
     formatted_location = f"{city}-Nederland%2B-%2B{province}"
-    url = f"https://plaza.newnewnew.space/en/availables-places/living-place#?gesorteerd-op=zoekprofiel&locatie={formatted_location}"
-    self.logger.info(f"Generated URL for location '{city}, {province}': {url}")
+    url = f"https://plaza.newnewnew.space/aanbod/wonen#?gesorteerd-op=zoekprofiel&locatie={formatted_location}"
+    self.logger.info("Generated URL for location '%s, %s': %s", city, province, url)
     return url
 
   def _serialize_str_to_housing_offer(self, input: str) -> HousingOffer:
@@ -54,16 +54,16 @@ class PlazaBot(AbstractHousingBot):
     for index, part in enumerate(parts):
       stripped = part.strip()
 
-      if "€" in stripped and "p.m" in stripped:
+      if "€" in stripped and "p/m" in stripped:
         try:
-          price_str = stripped.replace("€", "").replace("p.m", "").replace(",", "").strip()
+          price_str: str = stripped.replace("€", "").replace("p/m", "").replace(",", ".").strip()
           housing_offer.monthly_price = float(price_str)
         except ValueError:
           self.logger.exception("Failed to convert monthly price to float", exc_info=stripped)
-      elif "Total rental price:" in stripped:
+      elif "Totale huurprijs:" in stripped:
         try:
-          price_str = (
-            stripped.replace("Total rental price:", "").replace("€", "").replace(",", "").strip()
+          price_str: str = (
+            stripped.replace("Totale huurprijs:", "").replace("€", "").replace(",", ".").strip()
           )
           housing_offer.total_price = float(price_str)
         except ValueError:
@@ -81,23 +81,23 @@ class PlazaBot(AbstractHousingBot):
         housing_offer.address.city = stripped
 
       elif "•" in stripped:
-        segments = stripped.split("•")
+        segments: List[str] = stripped.split("•")
         for segment in segments:
-          segment = segment.strip()
-          if "studio" in segment.lower():
+          inner_segment: str = segment.strip()
+          if "studio" in inner_segment.lower():
             housing_offer.property_profile.property_type = "Studio"
-          elif "apartment" in segment.lower():
+          elif "apartment" in inner_segment.lower():
             housing_offer.property_profile.property_type = "Apartment"
-          elif "room" in segment.lower():
+          elif "room" in inner_segment.lower():
             housing_offer.property_profile.property_type = "Room"
-          elif "floor" in segment.lower():
+          elif "floor" in inner_segment.lower():
             try:
-              floor_text = segment.lower().replace("floor", "").strip()
-              floor_number = "".join(filter(str.isdigit, floor_text))
+              floor_text: str = inner_segment.lower().replace("e verdieping", "").strip()
+              floor_number: str = "".join(filter(str.isdigit, floor_text))
               if floor_number:
                 housing_offer.address.floor = int(floor_number)
             except ValueError:
-              self.logger.exception("Failed to convert floor to int", exc_info=segment)
+              self.logger.exception("Failed to convert floor to int", exc_info=inner_segment)
 
       elif "m²" in stripped:
         try:
@@ -137,7 +137,7 @@ class PlazaBot(AbstractHousingBot):
       try:
         login_button = self.driver.wait_for_element_to_be_clickable(
           By.XPATH,
-          "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Login')] | //zds-navigation-link[contains(@class, 'hydrated')]//zds-icon[@name='person_outline']",
+          "//zds-navigation-link[contains(@class, 'hydrated')]//span[contains(text(), 'Inloggen')] | //zds-navigation-link[contains(@class, 'hydrated')]//zds-icon[@name='person_out  line']",
         )
         login_button.click()
       except TimeoutException:
@@ -185,7 +185,7 @@ class PlazaBot(AbstractHousingBot):
       self.driver.quit()
       raise
 
-  def _reply(self, item: WebElement) -> None:
+  def _reply(self, item: WebElement, offer: HousingOffer) -> None:
     """Clicks on the item, clicks the "Reply" button, and returns to the original page.
 
     Args:
@@ -201,68 +201,83 @@ class PlazaBot(AbstractHousingBot):
       item.click()
 
       reply_button = self.driver.wait_for_element_to_be_clickable(
-        By.CSS_SELECTOR, "input.reageer-button[value='Reply']"
+        By.CSS_SELECTOR, "input.reageer-button[value='Reageer']"
       )
       self.driver.scroll_into_view(reply_button)
       time.sleep(1)
       reply_button.click()
 
-      time.sleep(2)
+      self.logger.info("Replied to offer: %s", offer)
 
-      self.driver.back()
+      time.sleep(2)
 
     except TimeoutException:
       self.logger.exception("Failed to find or click the 'Reply' button")
-    except Exception as e:
-      self.logger.exception(f"An error occurred while replying: {e}")
+      raise
+    finally:
+      self.driver.back()
 
-    self.driver.back()
-
-  def monitor_and_reply(self) -> None:
-    """Monitors the target URL for new items and replies to them."""
+  def _monitor_and_reply(self) -> None:
+    """Monitor the target URL for new items and replies to them."""
     location_url: str = self._generate_location_url(self.config["target"]["city"])
-    desired_complexes: List[str] = self.config["target"]["complexes"]
+    if "conmplexes" in self.config["target"]:
+      desired_complexes: List[str] = self.config["target"]["complexes"]
+    else:
+      desired_complexes: List[str] = []
     poll_interval: int = self.config["poll_interval"]
 
     self.driver.get(location_url)
 
     while True:
-      try:
-        list_container = self.driver.wait_for_element_to_be_visible(
-          By.CSS_SELECTOR, "div.object-list-items-container"
-        )
-
-        raw_items: Any = list_container.find_elements(By.CSS_SELECTOR, "section.list-item")
-
-        new_housing_offers: List[tuple[HousingOffer, Any]] = list(
-          filter(
-            lambda pair: pair[1].address.street in desired_complexes and not pair[1].responded,
-            [
-              (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
-              for raw_item in raw_items
-            ],
+      if self.driver.is_element_on_screen(
+        By.CSS_SELECTOR, "div.icon-br_sad.empty-state-icon + div.empty-state-text h2.ng-binding"
+      ):
+        self.logger.info("No new offers found")
+      else:
+        try:
+          list_container = self.driver.wait_for_element_to_be_visible(
+            By.CSS_SELECTOR, "div.object-list-items-container"
           )
-        )
 
-        if not new_housing_offers:
-          self.logger.info("No new offers found")
-        else:
-          self.logger.info("Found %d new offers", len(new_housing_offers))
-          for raw_item, offer in new_housing_offers:
-            try:
-              self._reply(raw_item)
-              offer.responded = True
-              self.logger.info("Replied to offer", exc_info=offer)
-            except TimeoutException:
-              self.logger.exception("Failed to reply to offer", exc_info=offer)
-            except Exception as e:
-              self.logger.exception("An error occurred while replying", exc_info=e)
+          raw_items: List[WebElement] = list_container.find_elements(
+            By.CSS_SELECTOR, "section.list-item"
+          )
 
-      except TimeoutException:
-        self.logger.warning("List container or items not found on the page")
-      except NoSuchElementException:
-        self.logger.warning("List container or items not found on the page")
+          new_housing_offers = list(
+              filter(
+                  lambda pair: not pair[1].responded
+                               and (not desired_complexes
+                                    or pair[1].address.street in desired_complexes),
+                  [
+                      (raw_item, self._serialize_str_to_housing_offer(raw_item.text))
+                      for raw_item in raw_items
+                  ],
+              )
+          )
+
+          if not new_housing_offers:
+            self.logger.info("No new offers found")
+          else:
+            self.logger.info("Found %d new offers", len(new_housing_offers))
+            for raw_item, offer in new_housing_offers:
+              try:
+                self._reply(raw_item, offer)
+              except TimeoutException:
+                self.logger.exception("Failed to reply to offer: %s", offer)
+
+        except TimeoutException:
+          self.logger.warning("List container or items not found on the page")
+        except NoSuchElementException:
+          self.logger.warning("List container or items not found on the page")
 
       time.sleep(poll_interval)
-      self.driver.refresh()
+      self.driver.get(location_url)
       self.logger.info("Page refreshed")
+
+  def run_bot(self) -> None:
+    """Run the bot."""
+    try:
+      self._login()
+      self._monitor_and_reply()
+    except Exception as e:
+      self.logger.exception("An error occurred", exc_info=e)

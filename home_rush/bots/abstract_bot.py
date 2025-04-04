@@ -23,7 +23,6 @@ class AbstractHousingBot:
     self.driver = WebDriverAdapter(config["selenium"])
     self.config = config[bot_name]
     self.logger = logger
-    self._login()
 
   def __del__(self) -> None:
     """Destructor for the bot."""
@@ -62,11 +61,15 @@ class AbstractHousingBot:
     """
     raise NotImplementedError
 
-  def monitor_and_reply(self) -> None:
+  def _monitor_and_reply(self) -> None:
     """Monitor the website and reply to new items.
 
     Returns:
       None
 
     """
+    raise NotImplementedError
+
+  def run_bot(self) -> None:
+    """Run the bot."""
     raise NotImplementedError

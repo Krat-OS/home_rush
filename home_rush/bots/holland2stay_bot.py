@@ -19,5 +19,8 @@ class Holland2StayBot(AbstractHousingBot):
   def _reply(self, item: WebElement) -> bool:
     pass
 
-  def monitor_and_reply(self) -> None:
+  def _monitor_and_reply(self) -> None:
+    pass
+
+  def run_bot(self) -> None:
     pass
