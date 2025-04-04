@@ -9,13 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 class WebDriverAdapter:
-  """A wrapper class for Selenium WebDriver to provide additional utility methods
-  and manage browser interactions based on a given configuration.
-
-  Attributes:
-    driver (webdriver.Chrome): The Selenium WebDriver instance used for browser automation.
-
-  """
+  """A wrapper class for Selenium WebDriver to provide additional utility methods."""
 
   def __init__(self, config: Dict[str, Any]):
     """Initialize the WebDriverAdapter with a configuration dictionary.
@@ -143,6 +137,19 @@ class WebDriverAdapter:
 
     """
     self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+  def js_click(self, element: WebElement) -> None:
+    """Click on a web element using JavaScript.
+
+    Args:
+      element (WebElement): The web element to click on.
+
+    """
+    self.driver.execute_script("arguments[0].click();", element)
+
+  def dismiss_dialog(self) -> None:
+    """Dismiss any open dialogs."""
+    self.driver.execute_script("document.body.click();")
 
   def back(self) -> None:
     """Navigate back to the previous page in the browser history."""

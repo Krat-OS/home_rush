@@ -327,15 +327,17 @@ class PlazaBot(AbstractHousingBot):
     try:
       parent: str = self.driver.get_current_url()
       self.driver.scroll_into_view(item)
-      time.sleep(1)
       item.click()
       reply_button = self.driver.wait_for_element_to_be_clickable(
         By.CSS_SELECTOR, "input.reageer-button[value='Reageer']"
       )
       self.driver.scroll_into_view(reply_button)
-      time.sleep(1)
-      reply_button.click()
-      time.sleep(2)
+      time.sleep(0.5)
+      self.driver.dismiss_dialog()
+      time.sleep(0.5)
+      self.driver.js_click(reply_button)
+      time.sleep(0.5)
+      self.logger.info("Replied!")
       self.driver.back()
     except TimeoutException:
       self.logger.exception("Failed to find or click the 'Reply' button")
@@ -360,7 +362,7 @@ class PlazaBot(AbstractHousingBot):
       if self.driver.is_element_on_screen(
         By.CSS_SELECTOR, "div.icon-br_sad.empty-state-icon + div.empty-state-text h2.ng-binding"
       ):
-        self.logger.info("No new offers found")
+        self.logger.info("No offers found at all!")
       else:
         try:
           list_container = self.driver.wait_for_element_to_be_visible(
