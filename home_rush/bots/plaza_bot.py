@@ -131,6 +131,7 @@ class PlazaBot(AbstractHousingBot):
     if "complexes" in filter_config:
       complexes: List[str] = filter_config["complexes"]
       if complexes:
+        self.logger.info("Filter by complexes: %s", complexes)
 
         def complexes_filter(offer: HousingOffer) -> bool:
           return offer.address.street in complexes
@@ -150,41 +151,56 @@ class PlazaBot(AbstractHousingBot):
 
         if "eq" in field_config:
           value: Any = field_config["eq"]
+          self.logger.info("Filtering by %s == %s", config_field, value)
 
           def eq_filter(offer: HousingOffer, field_path: str = obj_field, val: Any = value) -> bool:
-            if "." in field_path:
-              parts = field_path.split(".")
-              attr = getattr(offer, parts[0])
-              return getattr(attr, parts[1]) == val
-            return getattr(offer, field_path) == val
+            try:
+              if "." in field_path:
+                parts = field_path.split(".")
+                attr = getattr(offer, parts[0])
+                return getattr(attr, parts[1]) == val
+              return getattr(offer, field_path) == val
+            except AttributeError as e:
+              self.logger.exception("Attribute error in eq_filter: %s", e)
+              return False
 
           filters[f"{config_field}_eq"] = eq_filter
 
         if "min" in field_config:
           min_value: Any = field_config["min"]
+          self.logger.info("Filtering by %s >= %s", config_field, min_value)
 
           def min_filter(
             offer: HousingOffer, field_path: str = obj_field, val: Any = min_value
           ) -> bool:
-            if "." in field_path:
-              parts = field_path.split(".")
-              attr = getattr(offer, parts[0])
-              return getattr(attr, parts[1]) >= val
-            return getattr(offer, field_path) >= val
+            try:
+              if "." in field_path:
+                parts = field_path.split(".")
+                attr = getattr(offer, parts[0])
+                return getattr(attr, parts[1]) >= val
+              return getattr(offer, field_path) >= val
+            except AttributeError as e:
+              self.logger.exception("Attribute error in min_filter: %s", e)
+              return False
 
           filters[f"{config_field}_min"] = min_filter
 
         if "max" in field_config:
           max_value: Any = field_config["max"]
+          self.logger.info("Filtering by %s <= %s", config_field, max_value)
 
           def max_filter(
             offer: HousingOffer, field_path: str = obj_field, val: Any = max_value
           ) -> bool:
-            if "." in field_path:
-              parts = field_path.split(".")
-              attr = getattr(offer, parts[0])
-              return getattr(attr, parts[1]) <= val
-            return getattr(offer, field_path) <= val
+            try:
+              if "." in field_path:
+                parts = field_path.split(".")
+                attr = getattr(offer, parts[0])
+                return getattr(attr, parts[1]) <= val
+              return getattr(offer, field_path) <= val
+            except AttributeError as e:
+              self.logger.exception("Attribute error in max_filter: %s", e)
+              return False
 
           filters[f"{config_field}_max"] = max_filter
 
@@ -307,6 +323,7 @@ class PlazaBot(AbstractHousingBot):
       item (WebElement): The web element representing the item to reply to.
       offer (HousingOffer): The housing offer object being replied to.
     """
+    self.logger.info("Replying to offer: %s", offer)
     try:
       parent: str = self.driver.get_current_url()
       self.driver.scroll_into_view(item)
@@ -322,10 +339,12 @@ class PlazaBot(AbstractHousingBot):
       self.driver.back()
     except TimeoutException:
       self.logger.exception("Failed to find or click the 'Reply' button")
+      raise
     except StaleElementReferenceException:
       self.logger.warning("Encountered stale element, returning to listing page")
-    except Exception as e:
-      self.logger.exception("An error occurred while replying: %s", e)
+      raise
+    except Exception:
+      raise
     finally:
       self.driver.get(parent)
 
@@ -333,7 +352,6 @@ class PlazaBot(AbstractHousingBot):
     """Monitor the target URL for new items and replies to them."""
     location_url: str = self._generate_location_url(self.config["target"]["city"])
     filters: Dict[str, Callable[[HousingOffer], bool]] = self._parse_filters(self.config)
-    self.logger.info("Filters: %s", ", ".join(filters.keys()))
     poll_interval: int = self.config["poll_interval"]
 
     self.driver.get(location_url)
@@ -370,12 +388,12 @@ class PlazaBot(AbstractHousingBot):
           if not new_housing_offers:
             self.logger.info("No new offers found")
           else:
-            self.logger.info("Found %d new offers", len(new_housing_offers))
+            self.logger.info("Found %d new offers matching the filters", len(new_housing_offers))
             for raw_item, offer in new_housing_offers:
               try:
                 self._reply(raw_item, offer)
-              except TimeoutException:
-                self.logger.exception("Failed to reply to offer: %s", offer)
+              except Exception as e:
+                self.logger.exception("Failed to reply to offer!", exc_info=e)
 
         except TimeoutException:
           self.logger.warning("List container or items not found on the page")

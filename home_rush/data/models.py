@@ -9,9 +9,7 @@ class Address:
   city: str = ""
 
   def __str__(self) -> str:
-    return (
-      f"Street: {self.street} | Number: {self.number} | Floor: {self.floor} | City: {self.city}"
-    )
+    return f"{self.street}, {self.number}, Floor {self.floor}, {self.city}"
 
 
 @dataclasses.dataclass
@@ -32,4 +30,4 @@ class HousingOffer:
   responded: bool = False
 
   def __str__(self) -> str:
-    return f"Monthly: {self.monthly_price} | Total: {self.total_price} | Address: [{self.address}] | Property: [{self.property_profile}] | Responded: {self.responded}"
+    return f"{self.address} | Basic price: {self.monthly_price} | Total price: {self.total_price}"
